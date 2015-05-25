@@ -6,6 +6,9 @@ function append(parent, children) {
   if(!Array.isArray(children)) children = [children];
   children.map(function(child){ parent.appendChild(child); })
 }
+function remove(node) {
+    node.parentNode.removeChild(node);
+}
 function svgTag() {
   var svg = createSvg("svg");
   attr(svg,"xmlns", "http://www.w3.org/2000/svg");
@@ -13,15 +16,6 @@ function svgTag() {
   attr(svg,"version","1.1");
   return svg;
 }
-
-// function svgLine(a, b) {
-//   var l = createSvg("line");
-//   attr(l, "x1", a.x);
-//   attr(l, "y1", a.y);
-//   attr(l, "x2", b.x);
-//   attr(l, "y2", b.y);
-//   return l;
-// }
 
 function svgPath(d) {
   var p = createSvg("path");
@@ -34,11 +28,11 @@ function lineD(a, b) {
 }
 
 function svgCircle(center, radius) {
-  var p = createSvg("circle");
-  attr(p, "cx", center.x);
-  attr(p, "cy", center.y);
-  attr(p, "r", radius);
-  return p;
+  var c = createSvg("circle");
+  attr(c, "cx", center.x);
+  attr(c, "cy", center.y);
+  attr(c, "r", radius);
+  return c;
 }
 
 function drawable(path) {
@@ -48,8 +42,7 @@ function drawable(path) {
     return path;
 }
 
-function draw(path) { path.style.strokeDashoffset = parseInt(path.style.strokeDashoffset) -path.getTotalLength(); }
-function erase(path) { path.style.strokeDashoffset = parseInt(path.style.strokeDashoffset) -path.getTotalLength(); }
+function toggleDraw(path) { path.style.strokeDashoffset = parseInt(path.style.strokeDashoffset) -path.getTotalLength(); }
 
 function circleCoords(center, radius, n) {
     var a = 2*Math.PI/n;
@@ -62,6 +55,16 @@ function circleCoords(center, radius, n) {
     return coords;
 }
 
+function randomCoords(a,b,n) {
+    var coords = [];
+    for(var i = 0; i < n; i++)
+        coords.push({
+            x: rand(a.x, b.x),
+            y: rand(a.y, b.y)
+        });
+    return coords;
+}
+
 function rand(min, max) {return Math.floor(Math.random()*(max-min)+min);}
 function randElem(array) {return array[rand(0,array.length)];}
 function randPair(array) {
@@ -70,6 +73,19 @@ function randPair(array) {
     return [first, second];
 }
 
+///////////////////////////////////////
+function isFreePair(pair) {
+    for(var i = 0; i < edgeG.children.length; i++) {
+        var edge = edgeG.children[i];
+        if((edge.pair[0].x === pair[0].x && edge.pair[0].y === pair[0].y &&
+                    edge.pair[1].x === pair[1].x && edge.pair[1].y === pair[1].y) ||
+                (edge.pair[0].x === pair[1].x && edge.pair[0].y === pair[1].y &&
+                 edge.pair[1].x === pair[0].x && edge.pair[1].y === pair[0].y) ) {
+            return false;
+        }
+    }
+    return true;
+}
 //////////////////////////////////////
 
 
@@ -77,56 +93,64 @@ function randPair(array) {
 var svg = byId("lodium").appendChild(svgTag());
 attr(svg, "class", "lodium");
 
+var edgeG = createSvg("g");
+var nodeG = createSvg("g");
+svg.appendChild(edgeG);
+svg.appendChild(nodeG);
 
-var edge = drawable(svgPath("M 0 0 L 100 0"));
-edge.style.stroke = "#A041FF";
-edge.style.strokeWidth = "10";
-
-var nodeCoords = circleCoords({x:70, y:70},50,5);
+var nodeCount = 7;
+var nodeCoords = circleCoords({x:70, y:70},50,nodeCount);
+// var nodeCoords = randomCoords({x:10, y:10},{x:120, y:120},6);
+var nodei = 0;
 var nodes = nodeCoords.map(function(coords){
-    var circle = svgCircle(coords, 10);
-    circle.style.fill = "#CCC";
+    var circle = svgCircle(coords, 8);
+    circle.style.transition = "opacity 1s "+(nodei/nodeCount)+"s linear";
+    circle.style.fill = "#EEE";
+    circle.style.stroke = "#BBB";
+    circle.style.strokeWidth = "2";
+    circle.style.opacity = "0";
+    nodei++;
     return circle;
 });
+append(nodeG, nodes);
 
-
-var edges = [1,2,3].map(function(i) {
-    var ns = randPair(nodeCoords);
-    var p = drawable(svgPath(lineD(ns[0], ns[1])));
-    // p.style.stroke = "#A041FF";
-    p.style.strokeWidth = "5";
-    return p;
-});
-
-append(svg, edges);
-append(svg, nodes);
-
-var nextDraw = edges.length - 2;
-var nextErase = edges.length - 1;
 function drawNext() {
-    var ns = randPair(nodeCoords);
-    attr(edges[nextDraw],"d", lineD(ns[0], ns[1]));
-    drawable(edges[nextDraw]); // refresh animation lenght information
-    draw(edges[nextDraw]);
-    edges[nextDraw].style.stroke = "hsl("+rand(0,360)+", 80%, 50%)";
+    var pair;
+    var tries = 0;
+    do {
+        tries++;
+        if(tries > 10) return;
+        pair = randPair(nodeCoords);
+    } while( !isFreePair(pair) )
 
-    draw(edges[nextErase]);
-    nextDraw = (nextDraw + 1) % edges.length;
-    nextErase = (nextErase + 1) % edges.length;
+    var edge = drawable(svgPath(lineD(pair[0], pair[1])));
+    edge.pair = pair;
+    edge.style.stroke = "hsl("+rand(0,360)+", 100%, 70%)";
+    edge.style.strokeWidth = "3";
+    append(edgeG, edge);
+
+    setTimeout(function() {toggleDraw(edge)}, 100);
 }
 
-setInterval(drawNext, 500);
+function removeNext() {
+    for(var i = 0; i < edgeG.children.length; i++) {
+        var edge = edgeG.children[i];
+        if( edge.trash !== true ) {
+            toggleDraw(edge);
+            edge.trash = true;
+            setTimeout(function() {remove(edge);}, 1000);
+            break;
+        }
+    }
+}
 
+function showNodes() {
+    nodes.map(function(n) {
+        n.style.opacity = 100;
+    });
+}
 
-
-
-
-
-
-
-
-
-
-
-
+setTimeout(showNodes, 100);
+setTimeout(function(){setInterval(drawNext, 500);},1200);
+setTimeout(function(){setInterval(removeNext, 500);},3100);
 
