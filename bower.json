@@ -1,0 +1,16 @@
+{
+  "name": "lodium",
+  "main": "lodium.js",
+  "version": "0.1",
+  "homepage": "https://github.com/fdietze/lodium",
+  "authors": [
+    "Felix Dietze <felix@beerleader.net>",
+    "johannes karoff <johannes@karoff.net>"
+  ],
+  "description": "Cool loading",
+  "keywords": [
+    "loading",
+    "spinner"
+  ],
+  "license": "Apache License 2.0"
+}
