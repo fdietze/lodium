@@ -1,7 +1,7 @@
 {
   "name": "lodium",
   "main": "lodium.js",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "homepage": "https://github.com/fdietze/lodium",
   "authors": [
     "Felix Dietze <felix@beerleader.net>",

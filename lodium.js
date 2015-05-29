@@ -1,6 +1,8 @@
-function lodium(targetElement) {
+function Lodium(targetElement) {
     var svg = targetElement.appendChild(svgTag());
     attr(svg, "class", "lodium");
+    attr(svg, "width", 150);
+    attr(svg, "height", 150);
 
     var edgeG = createSvg("g");
     var nodeG = createSvg("g");
@@ -9,8 +11,8 @@ function lodium(targetElement) {
 
     var nodeCount = 7;
     var nodeCoords = circleCoords({
-        x: 70,
-        y: 70
+        x: 75,
+        y: 75
     }, 50, nodeCount);
     // var nodeCoords = randomCoords({x:10, y:10},{x:120, y:120},6);
     var nodei = 0;
@@ -27,13 +29,41 @@ function lodium(targetElement) {
 
     append(nodeG, nodes);
 
-    setTimeout(showNodes, 100);
-    setTimeout(function() {
-        setInterval(drawNext, 500);
-    }, 1200);
-    setTimeout(function() {
-        setInterval(removeNext, 500);
-    }, 3100);
+    var animationStarted = false;
+    var drawIntervalId, removeIntervalId;
+
+    this.start = startAnimation;
+    this.stop = stopAnimation;
+
+    function startAnimation() {
+        stopAnimation();
+
+        animationStarted = true;
+        setTimeout(showNodes, 100);
+        setTimeout(function() {
+            drawIntervalId = setInterval(drawNext, 500);
+        }, 1200);
+        setTimeout(function() {
+            removeIntervalId = setInterval(removeNext, 500);
+        }, 3100);
+    }
+
+    function stopAnimation() {
+        if (!animationStarted)
+            return;
+
+        animationStarted = false;
+        clearIntervals();
+        hideNodes();
+        removeEdges();
+    }
+
+    function clearIntervals() {
+        if (drawIntervalId !== undefined)
+            clearInterval(drawIntervalId);
+        if (removeIntervalId !== undefined)
+            clearInterval(removeIntervalId);
+    }
 
     function create(tag) {
         return document.createElement(tag);
@@ -55,7 +85,8 @@ function lodium(targetElement) {
     }
 
     function remove(node) {
-        node.parentNode.removeChild(node);
+        if (node.parentNode !== null)
+            node.parentNode.removeChild(node);
     }
 
     function svgTag() {
@@ -174,18 +205,34 @@ function lodium(targetElement) {
     function removeNext() {
         for (var i = 0; i < edgeG.childNodes.length; i++) {
             var edge = edgeG.childNodes[i];
-            if (edge.trash !== true) {
-                toggleDraw(edge);
+            if (!edge.trash) {
                 edge.trash = true;
+                toggleDraw(edge);
                 setTimeout(removeEdge.bind(this, edge), 1000);
                 break;
             }
         }
     }
 
-    function showNodes() {
+    function removeEdges() {
+        while (edgeG.hasChildNodes()) {
+            edgeG.removeChild(edgeG.lastChild);
+        }
+    }
+
+    function setNodeOpacity(opacity) {
         nodes.map(function(n) {
-            n.style.opacity = 100;
+            n.style.opacity = opacity;
         });
+    }
+
+    function hideNodes() {
+        svg.style.display = "none";
+        setNodeOpacity(0);
+    }
+
+    function showNodes() {
+        svg.style.display = "inline";
+        setNodeOpacity(100);
     }
 }
