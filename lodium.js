@@ -41,10 +41,12 @@ function Lodium(targetElement) {
         animationStarted = true;
         setTimeout(showNodes, 100);
         setTimeout(function() {
-            drawIntervalId = setInterval(drawNext, 500);
+            if (animationStarted)
+                drawIntervalId = setInterval(drawNext, 500);
         }, 1200);
         setTimeout(function() {
-            removeIntervalId = setInterval(removeNext, 500);
+            if (animationStarted)
+                removeIntervalId = setInterval(removeNext, 500);
         }, 3100);
     }
 
@@ -232,7 +234,9 @@ function Lodium(targetElement) {
     }
 
     function showNodes() {
-        svg.style.display = "inline";
-        setNodeOpacity(100);
+        if (animationStarted) {
+            svg.style.display = "inline";
+            setNodeOpacity(100);
+        }
     }
 }
